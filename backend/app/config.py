@@ -12,7 +12,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
 # ─── radiko API Endpoints ─────────────────────────────
 RADIKO_AUTH1_URL = "https://radiko.jp/v2/api/auth1"
 RADIKO_AUTH2_URL = "https://radiko.jp/v2/api/auth2"
-RADIKO_STATION_REGION_URL = "https://radiko.jp/v3/station/region/full.xml"
+RADIKO_STATION_LIST_URL = "https://radiko.jp/v3/station/list/{area_id}.xml"
 RADIKO_STREAM_URL = "https://radiko.jp/v2/station/stream_smh_multi/{station_id}.xml"
 
 # radiko live playlist (通常パターン)

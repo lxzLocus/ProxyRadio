@@ -44,39 +44,41 @@ async def get_stations(force_refresh: bool = False) -> dict:
     auth_status = await radiko_auth.get_auth_status()
     current_area = auth_status["area_id"]
 
-    logger.info("放送局一覧を取得中... (area=%s)", current_area)
-
     async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(config.RADIKO_STATION_REGION_URL)
+        url = config.RADIKO_STATION_LIST_URL.format(area_id=current_area)
+        logger.info("放送局一覧を取得中... (url=%s)", url)
+        resp = await client.get(url)
         resp.raise_for_status()
 
     root = ElementTree.fromstring(resp.text)
     stations = []
 
-    # XML 構造: <region> → <stations> → <station> → <area_id>JP13</area_id>
-    # area_id は <station> の子要素として格納されている
+    # XML 構造: <stations> → <station>
     for station_elem in root.findall(".//station"):
-        station_area_id = _get_text(station_elem, "area_id")
-
-        # 現在のエリアに属する局のみ抽出
-        if station_area_id != current_area:
-            continue
-
         station_id = _get_text(station_elem, "id")
         name = _get_text(station_elem, "name")
         ascii_name = _get_text(station_elem, "ascii_name")
 
         # ロゴURL: 複数サイズがあるが、大きめのものを選ぶ
         logo_url = ""
+        # 1. <logo> タグを検索 (複数サイズから124px以上のものを選ぶ)
         for logo_elem in station_elem.findall("logo"):
             width = logo_elem.get("width", "0")
             if int(width) >= 124:
                 logo_url = logo_elem.text or ""
                 break
         if not logo_url:
+            # 2. 単一の <logo> タグがある場合
             logo_elem = station_elem.find("logo")
-            if logo_elem is not None:
-                logo_url = logo_elem.text or ""
+            if logo_elem is not None and logo_elem.text:
+                logo_url = logo_elem.text.strip()
+        if not logo_url:
+            # 3. <logo_large> などのタグがある場合
+            for tag in ["logo_large", "logo_medium", "logo_small", "logo_xsmall"]:
+                logo_elem = station_elem.find(tag)
+                if logo_elem is not None and logo_elem.text:
+                    logo_url = logo_elem.text.strip()
+                    break
 
         stations.append(
             {
@@ -84,7 +86,7 @@ async def get_stations(force_refresh: bool = False) -> dict:
                 "name": name,
                 "ascii_name": ascii_name,
                 "logo_url": logo_url,
-                "area_id": station_area_id,
+                "area_id": current_area,
             }
         )
 

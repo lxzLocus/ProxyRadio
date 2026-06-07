@@ -153,6 +153,26 @@ class RadikoAuth:
         if not area_id:
             raise RuntimeError(f"auth2: エリアID が取得できませんでした (response={body})")
 
+        # 環境変数でエリアIDが指定されている場合は強制的に上書き
+        if config.RADIKO_AREA_ID:
+            logger.warning(
+                "エリアIDを環境変数の設定値に強制上書きします: %s -> %s",
+                area_id,
+                config.RADIKO_AREA_ID,
+            )
+            area_id = config.RADIKO_AREA_ID
+            # 主要なエリア名の簡易マッピング
+            area_mapping = {
+                "JP13": "東京",
+                "JP27": "大阪",
+                "JP26": "京都",
+                "JP28": "兵庫",
+                "JP23": "愛知",
+                "JP40": "福岡",
+                "JP01": "北海道",
+            }
+            area_name = area_mapping.get(area_id, f"指定エリア({area_id})")
+
         return AuthResult(
             token=token,
             area_id=area_id,
