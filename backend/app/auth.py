@@ -79,7 +79,13 @@ class RadikoAuth:
         return result.token
 
     async def get_auth_status(self) -> dict:
-        """現在の認証状態を返す"""
+        """現在の認証状態を返す（未認証時は自動で認証を試みる）"""
+        if not self._cached.is_valid:
+            try:
+                await self.get_token()
+            except Exception as e:
+                logger.warning("認証ステータス確認時の自動認証に失敗: %s", e)
+
         return {
             "authenticated": self._cached.is_valid,
             "area_id": self._cached.area_id,

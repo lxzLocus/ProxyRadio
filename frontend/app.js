@@ -51,6 +51,8 @@
   let currentStation = null;
   let isPlaying = false;
   let isLoading = false;
+  let programsMap = {}; // station_id -> { title, img, performer, ... }
+  let programRefreshTimer = null;
 
   // ─── Init ──────────────────────────────────────────
   async function init() {
@@ -58,6 +60,9 @@
       await checkAuthStatus();
       await loadStations();
       setupEventListeners();
+      // 番組情報の定期更新 (60秒ごと)
+      if (programRefreshTimer) clearInterval(programRefreshTimer);
+      programRefreshTimer = setInterval(refreshPrograms, 60000);
     } catch (err) {
       showError(`初期化に失敗しました: ${err.message}`);
     }
@@ -87,11 +92,22 @@
     showLoading();
 
     try {
-      const resp = await fetch(apiUrl("/api/stations"));
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      // 放送局一覧と番組情報を並行取得
+      const [stationsResp, programsResp] = await Promise.all([
+        fetch(apiUrl("/api/stations")),
+        fetch(apiUrl("/api/programs")).catch(() => null),
+      ]);
 
-      const data = await resp.json();
-      const stations = data.stations || [];
+      if (!stationsResp.ok) throw new Error(`HTTP ${stationsResp.status}`);
+
+      const stationsData = await stationsResp.json();
+      const stations = stationsData.stations || [];
+
+      // 番組情報をマッピング
+      if (programsResp && programsResp.ok) {
+        const programsData = await programsResp.json();
+        programsMap = programsData.programs || {};
+      }
 
       if (stations.length === 0) {
         showError("放送局が見つかりませんでした");
@@ -105,6 +121,48 @@
     }
   }
 
+  // ─── Refresh Programs ─────────────────────────────
+  async function refreshPrograms() {
+    try {
+      const resp = await fetch(apiUrl("/api/programs"));
+      if (!resp.ok) return;
+      const data = await resp.json();
+      programsMap = data.programs || {};
+      // カード上の番組情報を更新
+      updateProgramsOnCards();
+      // Now Playing バーの番組情報も更新
+      if (currentStation && programsMap[currentStation.id]) {
+        const prog = programsMap[currentStation.id];
+        const npProgram = document.getElementById("np-program");
+        if (npProgram) npProgram.textContent = prog.title;
+      }
+    } catch {
+      // 番組更新失敗は無視
+    }
+  }
+
+  function updateProgramsOnCards() {
+    document.querySelectorAll(".station-card").forEach((card) => {
+      const stationId = card.dataset.stationId;
+      const prog = programsMap[stationId];
+      if (!prog) return;
+
+      const titleEl = card.querySelector(".program-title");
+      const performerEl = card.querySelector(".program-performer");
+      const imgEl = card.querySelector(".program-img");
+      const placeholderEl = card.querySelector(".program-img-placeholder");
+
+      if (titleEl) titleEl.textContent = prog.title || "";
+      if (performerEl) performerEl.textContent = prog.performer || "";
+
+      if (imgEl && prog.img) {
+        imgEl.src = prog.img;
+        imgEl.style.display = "";
+        if (placeholderEl) placeholderEl.style.display = "none";
+      }
+    });
+  }
+
   // ─── Render Stations ───────────────────────────────
   function renderStations(stationList) {
     els.stationGrid.innerHTML = "";
@@ -116,29 +174,50 @@
       card.setAttribute("role", "button");
       card.setAttribute("tabindex", "0");
 
+      const prog = programsMap[station.id] || {};
+      const progTitle = prog.title || "";
+      const progImg = prog.img || "";
+      const progPerformer = prog.performer || "";
+
       card.innerHTML = `
-        <div class="station-logo-wrap">
-          ${
-            station.logo_url
-              ? `<img class="station-logo" src="${station.logo_url}" alt="${station.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
-                 <span class="station-logo-placeholder" style="display:none">${station.id}</span>`
-              : `<span class="station-logo-placeholder">${station.id}</span>`
-          }
+        <div class="station-card-left">
+          <div class="station-logo-wrap">
+            ${
+              station.logo_url
+                ? `<img class="station-logo" src="${station.logo_url}" alt="${station.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+                   <span class="station-logo-placeholder" style="display:none">${station.id}</span>`
+                : `<span class="station-logo-placeholder">${station.id}</span>`
+            }
+          </div>
+          <div class="station-info">
+            <div class="station-name">${station.name}</div>
+            <div class="program-title">${progTitle}</div>
+            <div class="program-performer">${progPerformer}</div>
+          </div>
         </div>
-        <div class="station-info">
-          <div class="station-name">${station.name}</div>
-          <div class="station-ascii">${station.ascii_name}</div>
-        </div>
-        <div class="station-eq">
-          <div class="station-eq-bar"></div>
-          <div class="station-eq-bar"></div>
-          <div class="station-eq-bar"></div>
-          <div class="station-eq-bar"></div>
-        </div>
-        <div class="station-play-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
+        <div class="station-card-right">
+          <div class="program-img-wrap">
+            ${progImg
+              ? `<img class="program-img" src="${progImg}" alt="${progTitle}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                 <div class="program-img-placeholder" style="display:none">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" opacity="0.3"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                 </div>`
+              : `<div class="program-img-placeholder">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" opacity="0.3"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                 </div>`
+            }
+          </div>
+          <div class="station-eq">
+            <div class="station-eq-bar"></div>
+            <div class="station-eq-bar"></div>
+            <div class="station-eq-bar"></div>
+            <div class="station-eq-bar"></div>
+          </div>
+          <div class="station-play-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
         </div>
       `;
 
@@ -295,6 +374,12 @@
     els.npLogo.src = station.logo_url || "";
     els.npLogo.alt = station.name;
     els.npName.textContent = station.name;
+    // 番組情報をNow Playingバーに表示
+    const prog = programsMap[station.id];
+    const npProgram = document.getElementById("np-program");
+    if (npProgram) {
+      npProgram.textContent = prog ? prog.title : "";
+    }
   }
 
   function showNowPlaying() {

@@ -285,7 +285,7 @@ body::before {
 /* ── Station Grid ── */
 .station-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 16px;
 }
 
@@ -295,13 +295,14 @@ body::before {
   background: var(--bg-card);
   border: 1px solid var(--bg-glass-border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 16px;
   cursor: pointer;
   transition: all var(--transition-base);
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .station-card::before {
@@ -333,12 +334,32 @@ body::before {
   opacity: 0.08;
 }
 
+/* ── Card Layout ── */
+.station-card-left {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.station-card-right {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .station-logo-wrap {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   display: flex;
@@ -355,7 +376,7 @@ body::before {
 }
 
 .station-logo-placeholder {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-muted);
   text-align: center;
@@ -370,7 +391,7 @@ body::before {
 }
 
 .station-name {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -378,13 +399,53 @@ body::before {
   text-overflow: ellipsis;
 }
 
-.station-ascii {
-  font-size: 0.75rem;
+.program-title {
+  font-size: 0.78rem;
   font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.program-performer {
+  font-size: 0.7rem;
+  font-weight: 400;
   color: var(--text-muted);
-  margin-top: 4px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Program Thumbnail ── */
+.program-img-wrap {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.program-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.program-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
 }
 
 .station-play-icon {
@@ -517,6 +578,15 @@ body::before {
   color: var(--live-color);
   letter-spacing: 1.5px;
   text-transform: uppercase;
+}
+
+.np-program {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .live-dot {
@@ -708,12 +778,17 @@ body::before {
   }
 
   .station-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: 1fr;
     gap: 12px;
   }
 
   .station-card {
-    padding: 16px;
+    padding: 14px;
+  }
+
+  .program-img-wrap {
+    width: 48px;
+    height: 48px;
   }
 
   .volume-control {
@@ -726,11 +801,11 @@ body::before {
 }
 
 @media (max-width: 480px) {
-  .station-grid {
-    grid-template-columns: 1fr;
+  .badge {
+    display: none;
   }
 
-  .badge {
+  .program-img-wrap {
     display: none;
   }
 }

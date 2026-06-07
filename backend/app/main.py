@@ -11,6 +11,7 @@ from fastapi.responses import PlainTextResponse, Response
 
 from . import config
 from .auth import radiko_auth
+from .programs import get_now_programs
 from .proxy import get_playlist, proxy_segment
 from .stations import clear_cache as clear_stations_cache
 from .stations import get_stations
@@ -108,6 +109,18 @@ async def list_stations():
     except Exception as e:
         logger.error("放送局一覧取得失敗: %s", e)
         raise HTTPException(status_code=500, detail=f"放送局一覧の取得に失敗しました: {e}")
+
+
+# ─── Now Playing Programs ─────────────────────────────
+@app.get("/api/programs")
+async def now_programs():
+    """現在放送中の番組情報を返す（番組名・サムネイル・出演者）"""
+    try:
+        programs = await get_now_programs()
+        return {"programs": programs}
+    except Exception as e:
+        logger.error("番組情報取得失敗: %s", e)
+        raise HTTPException(status_code=500, detail=f"番組情報の取得に失敗しました: {e}")
 
 
 # ─── HLS Stream ──────────────────────────────────────
