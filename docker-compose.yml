@@ -1,0 +1,38 @@
+services:
+  # ─── Backend (radiko HLS Proxy API) ─────────────────
+  # デプロイ先: 関西 Windows (radiko の関西局にアクセスするため)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: radiko-backend
+    ports:
+      - "${BACKEND_PORT:-8081}:8080"
+    environment:
+      - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - RADIKO_AREA_ID=${RADIKO_AREA_ID:-}
+      - BACKEND_URL=${BACKEND_URL:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8080/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ─── Frontend (Web Player UI) ───────────────────────
+  # デプロイ先: 関東 or 任意のマシン
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: radiko-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - BACKEND_URL=${BACKEND_URL:-}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy

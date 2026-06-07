@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>radiko Stream Player</title>
+  <meta name="description" content="radiko HLS プロキシ - ライブストリーミングプレイヤー" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ── Header ── -->
+    <header id="header">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/>
+              <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/>
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/>
+              <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
+            </svg>
+          </div>
+          <h1>radiko<span class="logo-accent">Stream</span></h1>
+        </div>
+        <div class="header-status">
+          <span id="auth-area" class="badge"></span>
+          <span id="connection-dot" class="status-dot"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Main Content ── -->
+    <main id="main">
+      <div id="loading-state" class="state-container">
+        <div class="loader">
+          <div class="loader-ring"></div>
+          <div class="loader-ring"></div>
+          <div class="loader-ring"></div>
+        </div>
+        <p class="loading-text">放送局を読み込み中...</p>
+      </div>
+
+      <div id="error-state" class="state-container hidden">
+        <div class="error-icon">⚠</div>
+        <p id="error-message" class="error-text"></p>
+        <button id="retry-btn" class="btn btn-primary">再試行</button>
+      </div>
+
+      <div id="station-grid" class="station-grid hidden"></div>
+    </main>
+
+    <!-- ── Now Playing Bar ── -->
+    <div id="now-playing" class="now-playing hidden">
+      <div class="now-playing-inner">
+        <div class="now-playing-info">
+          <img id="np-logo" class="np-logo" src="" alt="" />
+          <div class="np-details">
+            <span id="np-name" class="np-name"></span>
+            <span id="np-status" class="np-status">
+              <span class="live-dot"></span>
+              LIVE
+            </span>
+          </div>
+        </div>
+        <div class="np-controls">
+          <button id="np-play-btn" class="np-play-btn" aria-label="再生/停止">
+            <svg id="np-icon-play" class="np-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg id="np-icon-pause" class="np-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+            <svg id="np-icon-loading" class="np-icon np-spinner hidden" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </button>
+          <div class="volume-control">
+            <svg class="volume-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+            <input id="volume-slider" type="range" min="0" max="100" value="80" class="volume-slider" />
+          </div>
+          <button id="np-close-btn" class="np-close-btn" aria-label="閉じる">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="visualizer" class="visualizer">
+        <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+        <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+        <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+        <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+        <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+        <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+        <div class="viz-bar"></div><div class="viz-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-player" crossorigin="anonymous"></audio>
+
+  <!-- 環境設定（コンテナ起動時に自動生成） -->
+  <script src="/env-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
